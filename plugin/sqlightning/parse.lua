@@ -52,6 +52,14 @@ function _M.whereTable(tbl)
           table.insert(str, ('OR '..field_name..">"..value))
         elseif condition == "ORGTE" then
           table.insert(str, ('OR '..field_name..">="..value))
+        elseif condition == "LT" then
+          table.insert(str, (field_name.."<"..value))
+        elseif condition == "LTE" then
+          table.insert(str, (field_name.."<="..value))
+        elseif condition == "GT" then
+          table.insert(str, (field_name..">"..value))
+        elseif condition == "GTE" then
+          table.insert(str, (field_name..">="..value))
         else
           table.insert(str, ('AND '..(orig_field_name.."="..value)))
         end
@@ -158,7 +166,26 @@ function _M.updateTable(tbl)
 end
 
 function _M.createDbTable(tbl)
+  local valuesTbl = {}
 
+  local tStr
+
+  for name, value in pairs(tbl) do
+    tStr = {}
+
+    -- field type/options
+    for _, v in ipairs(value) do
+      table.insert(tStr, v)
+    end
+
+    tStr = table.concat(tStr, " ")
+    tStr = utils.join(" ", utils.quote(name, true), tStr)
+
+    table.insert(valuesTbl, tStr)
+
+  end
+
+  return table.concat(valuesTbl, ", ")
 end
 
 return _M

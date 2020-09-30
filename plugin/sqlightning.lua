@@ -34,11 +34,6 @@ _M.ASC = "ASC"
 _M.DESC = "DESC"
 
 --#############################################################################
---# Privates
---#############################################################################
-
-
---#############################################################################
 --# Constructor
 --#############################################################################
 function _M.new( options )
@@ -56,15 +51,7 @@ function _M.new( options )
     }
   end
 
-  -- options = options or {
-  --   _db = nil,
-  --   db_path = nil,
-  --   db_type = DB_TYPE.FILE,
-  --   db_debug = false,
-  -- }
-
   return setmetatable(options, mt)
-
 end
 
 --#############################################################################
@@ -108,8 +95,8 @@ end
 
 function _M.execute(self, query)
   self:open()
-
   self:debug( query )
+
   local res = self._db:exec( query )
 
   self:close()
@@ -120,30 +107,10 @@ end
 function _M.createTable(self, tbl_name, fields)
   local q
 
-  local valuesTbl = {}
-
-  local tStr
-
-  for name, value in pairs(fields) do
-    tStr = {}
-
-    for _, v in ipairs(value) do
-      table.insert(tStr, v)
-    end
-
-    tStr = table.concat(tStr, " ")
-    tStr = utils.join(" ", utils.quote(name, true), tStr)
-
-    table.insert(valuesTbl, tStr)
-
-  end
-
-  valuesTbl = table.concat(valuesTbl, ", ")
-  
   if tbl_name and fields then
     q = strf('CREATE TABLE IF NOT EXISTS %s ("id" INTEGER PRIMARY KEY, %s);', 
       tbl_name, 
-      valuesTbl)
+      parse.createDbTable(fields))
   else
     q = strf('CREATE TABLE IF NOT EXISTS %s ("id" INTEGER PRIMARY KEY);', tbl_name)
   end
@@ -151,14 +118,28 @@ function _M.createTable(self, tbl_name, fields)
   return self:execute( q )
 end
 
-function _M.add(self, data)
+function _M.query(self, query_str)
+  local rows = {}
 
+  self:open()
+  self:debug( query_str )
+
+  for row in self._db:nrows( query_str ) do
+    table.insert(rows, row)
+  end
+
+  self:close()
+
+  return rows, #rows
+end
+
+--#############################################################################
+--# ADD
+--#############################################################################
+function _M.add(self, data)
   if utils.isTbl(data) then
     local colStr, valStr = parse.valuesTable(data.values)
-
-    local q = strf("INSERT INTO %s (%s) VALUES (NULL, %s);", data.tbl, colStr, valStr)
-
-    return self:execute( q )
+    return self:execute( strf("INSERT INTO %s (%s) VALUES (NULL, %s);", data.tbl, colStr, valStr) )
   else
     return nil, "table 'values' not found."
   end
@@ -170,14 +151,16 @@ function _M.addMany(self, tbl_name, entries)
 
 end
 
+--#############################################################################
+--# GET
+--#############################################################################
 function _M.get(self, tbl_name, query)
-  self:open()
-
   local rows = {}
-
-  --fields and values
   local qBuilder = {}
 
+  self:open()
+
+  --fields and values
   if query.columns then
     table.insert(qBuilder, strf("SELECT %s FROM %s", parse.columnsTable(query.columns), tbl_name))
   else
@@ -207,13 +190,12 @@ function _M.get(self, tbl_name, query)
   self:close()
 
   return rows, #rows
-
 end
 
 function _M.getAll(self, tbl_name)
-  self:open()
-
   local rows = {}
+
+  self:open()
 
   local q = strf("SELECT * FROM %s;", tbl_name)
 
@@ -230,6 +212,7 @@ end
 
 function _M.getOne(self, tbl_name, query)
   query.limit = 1
+
   local rows = self:get(tbl_name, query)
 
   if #rows > 0 then
@@ -247,6 +230,9 @@ function _M.getById(self, tbl_name, id)
   return row
 end
 
+--#############################################################################
+--# UPDATE
+--#############################################################################
 function _M.update(self, tbl_name, query)
   local qBuilder = {}
 
@@ -269,13 +255,15 @@ function _M.update(self, tbl_name, query)
   end
 
   return self:execute( table.concat(qBuilder, " ") .. ";" )
-
 end
 
 function _M.updateById(self, tbl_name, id, query)
 
 end
 
+--#############################################################################
+--# DELETE
+--#############################################################################
 function _M.delete(self, tbl_name, query)
   local qBuilder = {}
 
@@ -290,31 +278,13 @@ end
 
 function _M.deleteLike(self, tbl_name, column, value)
   local q = strf("DELETE FROM %s WHERE '%s' LIKE '%%%s%%';", tbl_name, column, value)
+  
   return self:execute( q )
 end
 
 function _M.deleteAll(self, tbl_name)
   return self:execute( strf('DELETE FROM %s;', tbl_name) )
 end
-
-function _M.query(self, query_str)
-  self:open()
-
-  local rows = {}
-
-  local q = query_str
-
-  self:debug( q )
-
-  for row in self._db:nrows( q ) do
-    table.insert(rows, row)
-  end
-
-  self:close()
-
-  return rows, #rows
-end
-
 
 --#############################################################################
 --# Events

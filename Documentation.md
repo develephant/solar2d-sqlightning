@@ -8,7 +8,7 @@ local sl = require("plugin.sqlightning")
 
 ### .new( [options_tbl] )
 
-_Creates a new database instance. If `dp_path` is omitted (or no options table is passed), the database defaults to memory database._
+_Creates a new database instance. If `dp_path` is omitted (or no options table is passed), the database will be created in-memory._
 
 ```lua
 local db = sqlightning.new({ db_path = "my.db" })
@@ -192,16 +192,18 @@ local res, err = db:query("SELECT * FROM cats;")
 
 ## WHERE Field Modifiers
 
-The AND modifier is used by defaul when no modifier is added.
+The AND modifier is used by default when no modifier is added.
 
 __Example:__
 
 ```lua
 {
   where = { color = "Green", ANDLT_age = 3 }
-  -- WHERE color='Green' AND age<3;
+  --> WHERE color='Green' AND age<3
 }
 ```
+
+__Can NOT be used on first `where` table entry__
 
  - AND_*
  - ANDLT_*
@@ -216,9 +218,29 @@ __Example:__
  - ORGT_*
  - ORGTE_*
 
+__Can ONLY be used on first `where` table entry__
+
+ - LT_*
+ - LTE_*
+ - GT_*
+ - GTE_*
+
+ ```lua
+-- !! NO - Use ANDLT_* or ORLT_* on second entry. !!
+{
+  where = { color = "blue", LT_age = 2 }
+}
+
+-- ** YES - Use LT_*, LTE_*, GT_*, or GTE_* on first entry. **
+{
+  where = { LT_age = 2, OR_color = "blue" }
+}
+--> WHERE age<2 OR color='blue'
+ ```
+
  ## The Query Table
 
- _Includes the following fields. Not all fields may be applicable for each method. See method docs._
+ _Not all fields may be applicable for each method. See method docs for usage._
 
 |parameter|type|description|
 |---------|----|-----------|
