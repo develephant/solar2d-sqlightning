@@ -14,9 +14,9 @@ __Example:__
 
 ```lua
 -- FILE BASED
-local db = sqlightning.new({ db_path = "my.db" })
+local db = sl.new({ db_path = "my.db" })
 -- MEMORY BASED
-local db = sqlightning.new()
+local db = sl.new()
 ```
 
 __Options Table:__
