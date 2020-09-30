@@ -10,8 +10,13 @@ local sl = require("plugin.sqlightning")
 
 _Creates a new database instance. If `dp_path` is omitted (or no options table is passed), the database will be created in-memory._
 
+__Example:__
+
 ```lua
+-- FILE BASED
 local db = sqlightning.new({ db_path = "my.db" })
+-- MEMORY BASED
+local db = sqlightning.new()
 ```
 
 __Options Table:__
