@@ -147,8 +147,22 @@ function _M.add(self, data)
   return nil, "could not add record."
 end
 
-function _M.addMany(self, tbl_name, entries)
+function _M.addMany(self, tbl_name, records)
+  if utils.isTbl(records) then
+    self:open()
+    
+    local colStr, valStr
+    for rec=1, #records do
+      colStr, valStr = parse.valuesTable(records[rec])
+      self._db:exec( strf("INSERT INTO %s (%s) VALUES (NULL, %s);", tbl_name, colStr, valStr) )
+    end
 
+    self:close()
+  else
+    return nil, "table 'records' not found."
+  end
+
+  return nil, "method 'addMany' failed."
 end
 
 --#############################################################################
@@ -278,7 +292,7 @@ end
 
 function _M.deleteLike(self, tbl_name, column, value)
   local q = strf("DELETE FROM %s WHERE '%s' LIKE '%%%s%%';", tbl_name, column, value)
-  
+
   return self:execute( q )
 end
 

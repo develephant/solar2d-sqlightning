@@ -61,7 +61,11 @@ function _M.whereTable(tbl)
         elseif condition == "GTE" then
           table.insert(str, (field_name..">="..value))
         else
-          table.insert(str, ('AND '..(orig_field_name.."="..value)))
+          if #str < 1 then
+            table.insert(str, (orig_field_name.."="..value))
+          else
+            table.insert(str, ('AND '..orig_field_name.."="..value))
+          end
         end
       else
         if #str < 1 then

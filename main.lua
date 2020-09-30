@@ -1,30 +1,25 @@
 --#############################################################################
 --# SQLightning Harness
 --#############################################################################
-
--- local sql = require("sqlite3")
-
--- local db, errCode, errMsg = sql.open( system.pathForFile( "my.db", system.DocumentsDirectory ) )
-
--- local q = "INSERT INTO `toys` VALUES (NULL, 'Car', 'Yellow');"
--- local res, err = db:exec( q )
-
--- print(res)
--- print(err)
-
--- db:close()
+local strf = string.format
 
 local sl = require("plugin.sqlightning")
 
 print(sl.version())
 
-local db = sl.new({ db_path = "my.db", db_debug = true })
+local db = sl.new({ db_path = "chumbyland.db", db_debug = true })
 
-db:createTable("cats", {
-  name = {db.TEXT, db.UNIQUE},
-  color = {db.TEXT},
-  age = {db.INTEGER}
+local row, err = db:get("chums", {
+  where = { chum_id = "chum_006", age = 2 }
 })
+-- print(row.icon)
+-- local db = sl.new({ db_path = "my.db", db_debug = true })
+
+-- db:createTable("cats", {
+--   name = {db.TEXT, db.UNIQUE},
+--   color = {db.TEXT},
+--   age = {db.INTEGER}
+-- })
 
 -- local res = db:add({
 --   tbl = "cats",
@@ -37,16 +32,16 @@ db:createTable("cats", {
 
 -- print(res)
 
-local res = db:update("cats", {
-  values = { color = "Green" },
-  where = { 
-    id = 1,
-    OR_last_name = "Timmy",
-    ORGT_age = 3
-  }
-})
+-- local res = db:update("cats", {
+--   values = { color = "Green" },
+--   where = { 
+--     id = 1,
+--     OR_last_name = "Timmy",
+--     ORGT_age = 3
+--   }
+-- })
 
-local rows = db:getAll("cats")
+-- local rows = db:getAll("cats")
 
 -- local rows, cnt = db:get("cats", {
 --   orderby = {
@@ -61,9 +56,9 @@ local rows = db:getAll("cats")
 
 -- print(row.color)
 
-for idx, row in ipairs(rows) do
-  print(row.color)
-end
+-- for idx, row in ipairs(rows) do
+--   print(row.color)
+-- end
 
 -- print("rows: "..cnt)
 
@@ -77,4 +72,4 @@ end
 
 -- local res = db:deleteLike("cats", "name", "Blue")
 
-print(res)
+-- print(res)

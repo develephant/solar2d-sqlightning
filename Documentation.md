@@ -54,7 +54,26 @@ local err = db:add({
 })
 ```
 
-### :addMany
+### :addMany( table_name, records_tbl )
+
+_Adds multiple records to a database table._
+
+__Example:__
+
+```lua
+local cat_records = {
+  {
+    name = "Spiffy",
+    age = 2
+  },
+  {
+    name = "Ginger",
+    age = 5
+  }
+}
+
+local err = db:addMany("cats", cat_records)
+```
 
 ### :createTable( table_name, values_tbl )
 
