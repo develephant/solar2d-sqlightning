@@ -4,8 +4,8 @@
 --# (c)2020 C. Byerley
 --#############################################################################
 local sqlite = require("sqlite3")
-local utils = require("plugin.sqlightning.utils")
-local parse = require("plugin.sqlightning.parse")
+local utils = require("lib.sqlightning.utils")
+local parse = require("lib.sqlightning.parse")
 
 local strf = string.format
 
@@ -136,10 +136,10 @@ end
 --#############################################################################
 --# ADD
 --#############################################################################
-function _M.add(self, data)
-  if utils.isTbl(data) then
-    local colStr, valStr = parse.valuesTable(data.values)
-    return self:execute( strf("INSERT INTO %s (%s) VALUES (NULL, %s);", data.tbl, colStr, valStr) )
+function _M.add(self, tbl_name, values)
+  if utils.isTbl(values) then
+    local colStr, valStr = parse.valuesTable(values)
+    return self:execute( strf("INSERT INTO %s (%s) VALUES (NULL, %s);", tbl_name, colStr, valStr) )
   else
     return nil, "table 'values' not found."
   end
@@ -298,6 +298,14 @@ end
 
 function _M.deleteAll(self, tbl_name)
   return self:execute( strf('DELETE FROM %s;', tbl_name) )
+end
+
+--#############################################################################
+--# Utils
+--#############################################################################
+function _M.count(self, tbl_name)
+  local rows = self:query( strf("SELECT COUNT(id) AS cnt FROM %s;", tbl_name) )
+  return rows[1].cnt
 end
 
 --#############################################################################

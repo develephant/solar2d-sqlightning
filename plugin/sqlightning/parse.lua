@@ -1,7 +1,7 @@
 --#############################################################################
 --# Parser
 --#############################################################################
-local utils = require("plugin.sqlightning.utils")
+local utils = require("lib.sqlightning.utils")
 
 local _M = {}
 
@@ -103,6 +103,7 @@ end
 function _M.orderbyTable(tbl)
   if utils.isTbl(tbl) then
     local orderStr = {}
+
     for col, order in pairs(tbl) do
       table.insert(orderStr, (col.." ".. order))
     end

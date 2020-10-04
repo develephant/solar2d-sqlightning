@@ -40,17 +40,14 @@ print( db.version() )
 
 ## Methods
 
-### :add( query_tbl )
+### :add( table_name, values_tbl )
 
 __Example:__
 
 ```lua
-local err = db:add({
-  tbl = "cats",
-  values = {
-    name = "Tribble",
-    age = 5
-  }
+local err = db:add("cats", {
+  name = "Tribble",
+  age = 5
 })
 ```
 
@@ -200,6 +197,16 @@ __Example:__
 
 ```lua
 local res, err = db:query("SELECT * FROM cats;")
+```
+
+### :count( table_name )
+
+_Return the record count from a table._
+
+__Example:__
+
+```lua
+local cnt = db:count("cats")
 ```
 
 ## CONSTANTS
