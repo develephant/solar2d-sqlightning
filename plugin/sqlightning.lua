@@ -172,6 +172,8 @@ function _M.get(self, tbl_name, query)
   local rows = {}
   local qBuilder = {}
 
+  query = query or {}
+
   self:open()
 
   --fields and values
@@ -298,6 +300,13 @@ end
 
 function _M.deleteAll(self, tbl_name)
   return self:execute( strf('DELETE FROM %s;', tbl_name) )
+end
+
+function _M.deleteById(self, tbl_name, id)
+  return self:delete(tbl_name, {
+    where = { id = id },
+    limit = 1
+  })
 end
 
 --#############################################################################

@@ -96,6 +96,16 @@ local err = db:delete("cats", {
 })
 ```
 
+### :deleteById( table_name, id )
+
+_Delete a record based on the primary row id._
+
+__Example:__
+
+```lua
+local err = db:deleteById("cats", 20)
+```
+
 ### :deleteAll( table_name )
 
 _Deletes all records in a database leaving an empty database table._
