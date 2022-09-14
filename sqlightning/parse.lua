@@ -30,7 +30,7 @@ function _M.whereTable(tbl)
         table.remove(field_name, 1, 1)
         field_name = table.concat(field_name, "_")
 
-        print(condition)
+        --print(condition)
 
         if condition == "AND" then
           table.insert(str, ('AND '..field_name.."="..value))

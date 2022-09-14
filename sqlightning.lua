@@ -4,8 +4,8 @@
 --# (c)2020 C. Byerley
 --#############################################################################
 local sqlite = require("sqlite3")
-local utils = require("lib.sqlightning.utils")
-local parse = require("lib.sqlightning.parse")
+local utils = require("sqlightning.utils")
+local parse = require("sqlightning.parse")
 
 local strf = string.format
 
@@ -41,8 +41,10 @@ function _M.new( options )
     --memory or file
     if not options.db_path then
       options.db_type = DB_TYPE.MEMORY
+      options.db_keep_open = false
     else
       options.db_type = DB_TYPE.FILE
+      options.db_keep_open = options.db_keep_open or false
     end
   else
     options = {
@@ -51,7 +53,16 @@ function _M.new( options )
     }
   end
 
-  return setmetatable(options, mt)
+  options.db = nil
+
+  local obj = setmetatable(options, mt)
+
+  if obj.db_keep_open then
+    print("keep open")
+    obj:open( true )
+  end
+
+  return obj
 end
 
 --#############################################################################
@@ -75,22 +86,31 @@ end
 --#############################################################################
 --# Methods
 --#############################################################################
-function _M.open( self )
-  if not self._db then
-    if self.db_type and self.db_type == DB_TYPE.MEMORY then
-      self._db = sqlite.open_memory()
-    else
-      local path = system.pathForFile( self.db_path, system.DocumentsDirectory )
-      self._db = sqlite.open( path )
+function _M.open( self, first_run )
+  if not self.db_keep_open or first_run then
+    print("open")
+    if not self._db then
+      if self.db_type and self.db_type == DB_TYPE.MEMORY then
+        self._db = sqlite.open_memory()
+      else
+        local path = system.pathForFile( self.db_path, system.DocumentsDirectory )
+        self._db = sqlite.open( path )
+      end
     end
+
   end
 
   return self
 end
 
-function _M.close(self)
-  self._db:close()
-  self._db = nil
+function _M.close(self, force_close)
+  if not self.db_keep_open or force_close then
+    if self._db then
+      self._db:close()
+      self._db = nil
+    end
+    print("closed")
+  end
 end
 
 function _M.execute(self, query)
@@ -98,10 +118,16 @@ function _M.execute(self, query)
   self:debug( query )
 
   local res = self._db:exec( query )
+  local err_code = self._db:errcode()
+  local err_msg = self._db:errmsg()
+
+  if err_code ~= 0 then
+    print("!> SQL: "..res.." code: "..err_code.." msg: "..err_msg)
+  end
 
   self:close()
 
-  return res
+  return res, err_code, err_msg
 end
 
 function _M.createTable(self, tbl_name, fields)
@@ -118,7 +144,7 @@ function _M.createTable(self, tbl_name, fields)
   return self:execute( q )
 end
 
-function _M.query(self, query_str)
+function _M.query(self, query_str, single)
   local rows = {}
 
   self:open()
@@ -129,6 +155,12 @@ function _M.query(self, query_str)
   end
 
   self:close()
+
+  if single then
+    if #rows > 0 then
+      return rows[1]
+    end
+  end
 
   return rows, #rows
 end
@@ -274,7 +306,7 @@ function _M.update(self, tbl_name, query)
 end
 
 function _M.updateById(self, tbl_name, id, query)
-
+  return self:update(tbl_name, query)
 end
 
 --#############################################################################
@@ -310,11 +342,115 @@ function _M.deleteById(self, tbl_name, id)
 end
 
 --#############################################################################
+--# Join
+--#############################################################################
+--[[ tbl_1
+  .name
+  .columns
+]]
+function _M.join(self, tbl_1, tbl_2, joins)
+
+  local join_tbl = {}
+
+  for idx, join in ipairs(joins) do
+    table.insert(join_tbl, join[1].."="..join[2])
+  end
+  local where = table.concat(join_tbl, " AND ")
+
+  local tables = tbl_1.name..", "..tbl_2.name
+
+  local columns = {}
+
+  if tbl_1.columns then
+    for i=1, #tbl_1.columns do
+      table.insert(columns, tbl_1.name.."."..tbl_1.columns[i])
+    end
+  else
+    table.insert(columns, "*")
+  end
+
+  if tbl_2.columns then
+    for i=1, #tbl_2.columns do
+      table.insert(columns, tbl_2.name.."."..tbl_2.columns[i])
+    end
+  else
+    table.insert(columns, "*")
+  end
+
+  columns = table.concat(columns, ", ")
+
+  local q = strf("SELECT %s FROM %s WHERE %s;", columns, tables, where)
+
+--
+  local rows = {}
+
+  self:open()
+
+  self:debug( q )
+
+  for row in self._db:nrows( q ) do
+    table.insert(rows, row)
+  end
+
+  self:close()
+
+  return rows, #rows
+end
+
+--#############################################################################
 --# Utils
 --#############################################################################
 function _M.count(self, tbl_name)
   local rows = self:query( strf("SELECT COUNT(id) AS cnt FROM %s;", tbl_name) )
   return rows[1].cnt
+end
+
+function _M.decInt(self, tbl_name, query)
+  local q = {}
+
+  local update_field = query.update.field
+  local update_amount = tonumber(query.update.amount)
+
+  local update = strf("UPDATE %s", tbl_name)
+
+  local set = strf("SET %s=%s-%d", 
+    update_field, 
+    update_field, 
+    update_amount)
+
+  local where = strf("WHERE %s AND %s>0", parse.whereTable(query.where), update_field)
+
+  table.insert(q, update)
+  table.insert(q, set)
+  table.insert(q, where)
+
+  q = table.concat(q, " ") .. ";"
+
+  return self:execute( q )
+end
+
+function _M.incInt(self, tbl_name, query)
+  local q = {}
+
+  local update_field = query.update.field
+  local update_amount = tonumber(math.max(query.update.amount, 0))
+
+  local update = strf("UPDATE %s", tbl_name)
+
+  local set = strf("SET %s=%s+%d", 
+    update_field, 
+    update_field, 
+    update_amount)
+
+  local where = strf("WHERE %s", parse.whereTable(query.where))
+
+  table.insert(q, update)
+  table.insert(q, set)
+  table.insert(q, where)
+
+  q = table.concat(q, " ") .. ";"
+
+  return self:execute( q )
 end
 
 --#############################################################################
